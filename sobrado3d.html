@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Sobrado 5×25 — modelo 3D</title>
+<style>
+/* VOICE: ferramenta de trabalho, discreta
+   IDEA: maquete de arquiteto sobre a mesa
+   PICTURE: o próprio modelo 3D, tela inteira
+   COLOUR and TYPE: céu claro, barras brancas translúcidas, azul de destaque; fonte do sistema
+   LAYOUT: 3D ocupa 100% da tela; barras de controle flutuam por cima e podem ser escondidas */
+:root{color-scheme:light dark}
+*{box-sizing:border-box;min-width:0}
+html,body{margin:0;height:100%;overflow:hidden;background:#DCE8F0;font:14px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:#2C2C2A}
+#wrap{position:fixed;inset:0;touch-action:none;cursor:grab}
+#wrap canvas{display:block;width:100%;height:100%}
+.bar{position:fixed;left:12px;right:64px;display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:8px 10px;border-radius:12px;background:rgba(255,255,255,.86);backdrop-filter:blur(6px);box-shadow:0 1px 6px rgba(0,0,0,.12);z-index:5;transition:opacity .2s,transform .2s}
+.top{top:12px}.bottom{bottom:12px}
+.bar .t{font-weight:600;margin-right:6px}
+.bar .k{color:#5F5E5A;font-size:13px;margin:0 2px 0 6px}
+.bt{font:inherit;font-size:13px;padding:7px 12px;min-height:36px;border:1px solid rgba(0,0,0,.15);border-radius:8px;background:#fff;color:#2C2C2A;cursor:pointer}
+.bt.on{background:#185FA5;border-color:#185FA5;color:#fff}
+.bt:focus-visible,.tb:focus-visible{outline:2px solid #185FA5;outline-offset:2px}
+.hint{color:#5F5E5A;font-size:12px;margin-left:auto}
+.hidden .bar{opacity:0;pointer-events:none}
+.hidden .top{transform:translateY(-12px)}.hidden .bottom{transform:translateY(12px)}
+.tools{position:fixed;top:12px;right:12px;display:flex;flex-direction:column;gap:6px;z-index:6}
+.tb{width:44px;height:44px;border-radius:10px;border:1px solid rgba(0,0,0,.15);background:rgba(255,255,255,.92);color:#2C2C2A;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 1px 6px rgba(0,0,0,.12)}
+.tb.on{background:#185FA5;color:#fff;border-color:#185FA5}
+.tb svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.lbl{position:fixed;transform:translate(-50%,-50%);font-size:12px;padding:2px 6px;border-radius:4px;background:rgba(255,255,255,.9);color:#2C2C2A;pointer-events:none;white-space:nowrap;z-index:2}
+@media(max-width:760px){.hint{display:none}.bar{right:64px;gap:4px;padding:6px 8px}.bt{padding:6px 9px}.bar .t{display:none}}
+@media(prefers-reduced-motion:reduce){.bar{transition:none}}
+</style>
+</head>
+<body>
+<div id="wrap"></div>
+<div class="bar top" id="barTop">
+<span class="t">Sobrado 5×25</span>
+<button class="bt md" data-m="full">Fachada</button>
+<button class="bt md" data-m="ground">Térreo</button>
+<button class="bt md" data-m="upper">Andar de cima</button>
+<button class="bt md on" data-m="attic">Parte técnica</button>
+</div>
+<div class="bar bottom" id="barBot">
+<span class="k">Sol</span>
+<button class="bt sb on" data-s="m">Manhã</button>
+<button class="bt sb" data-s="n">Meio-dia</button>
+<button class="bt sb" data-s="t">Tarde</button>
+<span class="k">Vista</span>
+<button class="bt" data-v="0.75,1.05">Frente</button>
+<button class="bt" data-v="0.5,1.2">Corredor</button>
+<button class="bt" data-v="0.18,1.0">Fundos</button>
+<button class="bt" data-v="0.6,0.3">Aérea</button>
+<span class="hint">Girar: arrastar · Mover: mão, botão direito, Shift ou dois dedos · Zoom: roda ou pinça</span>
+</div>
+<div class="tools">
+<button class="tb" id="tBars" title="Mostrar ou esconder controles" aria-label="Mostrar ou esconder controles"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
+<button class="tb on" id="tRot" title="Girar" aria-label="Girar"><svg viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg></button>
+<button class="tb" id="tPan" title="Arrastar" aria-label="Arrastar"><svg viewBox="0 0 24 24"><path d="M12 3v18M3 12h18M9 6l3-3 3 3M9 18l3 3 3-3M6 9l-3 3 3 3M18 9l3 3-3 3"/></svg></button>
+<button class="tb" id="tCen" title="Centralizar" aria-label="Centralizar"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M4 8V4h4M20 8V4h-4M4 16v4h4M20 16v4h-4"/></svg></button>
+<button class="tb" id="tZi" title="Aproximar" aria-label="Aproximar"><svg viewBox="0 0 24 24"><circle cx="10" cy="10" r="6"/><path d="M21 21l-6-6M7 10h6M10 7v6"/></svg></button>
+<button class="tb" id="tZo" title="Afastar" aria-label="Afastar"><svg viewBox="0 0 24 24"><circle cx="10" cy="10" r="6"/><path d="M21 21l-6-6M7 10h6"/></svg></button>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+{
+const wrap=document.getElementById('wrap');
+const scene=new THREE.Scene();
+const cam=new THREE.PerspectiveCamera(40,1,0.1,300);
+const ren=new THREE.WebGLRenderer({antialias:true});
+ren.shadowMap.enabled=true;ren.shadowMap.type=THREE.PCFSoftShadowMap;
+ren.setPixelRatio(Math.min(devicePixelRatio,2));
+wrap.appendChild(ren.domElement);
+scene.add(new THREE.HemisphereLight(0xffffff,0x8a8a7a,0.62));
+const sun=new THREE.DirectionalLight(0xfff4e0,0.95);
+sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);
+Object.assign(sun.shadow.camera,{left:-24,right:24,top:24,bottom:-24,near:1,far:110});
+const tgt0=new THREE.Vector3(12.5,0,2.5);sun.target.position.copy(tgt0);scene.add(sun);scene.add(sun.target);
+const sunBall=new THREE.Mesh(new THREE.SphereGeometry(1.2,16,12),new THREE.MeshBasicMaterial({color:0xFFD34D}));scene.add(sunBall);
+const SUN={m:[0.45,0.32,0.83],n:[0.05,1,0.15],t:[-0.45,0.32,-0.83]};
+function setSun(k){const d=new THREE.Vector3(...SUN[k]).normalize();sun.position.copy(tgt0).addScaledVector(d,45);sunBall.position.copy(tgt0).addScaledVector(d,38);
+document.querySelectorAll('.sb').forEach(b=>b.classList.toggle('on',b.dataset.s===k))}
+document.querySelectorAll('.sb').forEach(b=>b.onclick=()=>setSun(b.dataset.s));setSun('m');
+const M=(c,o={})=>new THREE.MeshStandardMaterial(Object.assign({color:c,roughness:.85},o));
+const wall=M(0xEFEBE3),wall2=M(0xD9CFC0),slab=M(0xB9B4AA),roof=M(0x8E9298),pave=M(0xC4BFB4),corr=M(0xA9A49A),grass=M(0x86B56E),
+glass=M(0x4F7FA6,{roughness:.2,metalness:.3}),door=M(0x7A5A3C),post=M(0x55585C),white=M(0xF7F7F5),soil=M(0x6B4F36),planter=M(0xA8A39A),wood=M(0x9A6B43),
+tank=M(0x2F6FB0,{roughness:.5}),pipe=M(0x3F8F4F),reg=M(0xC0392B),hot=M(0xE24B4A),ins=M(0x222222),elec=M(0xD9822B),data=M(0x7F77DD),shaftM=M(0x8C8577),shaftH=M(0xD85A30),copper=M(0xB87333,{metalness:.4,roughness:.4}),
+tile=M(0xD8D2C4),dark=M(0x2C2C2A),insp=M(0x6E6A62),metal=M(0x9AA3AB,{metalness:.5,roughness:.4}),steel=M(0xDADDE0,{metalness:.55,roughness:.3}),insul=M(0xF2E3B3),
+pv=M(0x1B2F4E,{roughness:.25,metalness:.45}),pvF=M(0xC9CCD0,{metalness:.6,roughness:.35}),abs=M(0x26262A,{roughness:.35,metalness:.3}),
+cover=M(0xCFE3F0,{transparent:true,opacity:.55,roughness:.3}),muro=M(0xE4E1DA,{transparent:true,opacity:.45,depthWrite:false}),
+rail=M(0xBFD9EA,{transparent:true,opacity:.45,roughness:.2});
+function box(x0,x1,y0,y1,z0,z1,m,p=scene){const g=new THREE.Mesh(new THREE.BoxGeometry(x1-x0,y1-y0,z1-z0),m);g.position.set((x0+x1)/2,(y0+y1)/2,(z0+z1)/2);g.castShadow=g.receiveShadow=true;p.add(g);return g}
+const G=()=>{const g=new THREE.Group();scene.add(g);return g};
+const gExt=G(),mid=G(),jard=G(),upW=G(),shell=G(),roofG=G(),attic=G(),cut=G(),gcut=G();
+function leaf(hx,dir){const g=new THREE.Group();g.position.set(hx,0,3.53);scene.add(g);box(dir>0?0:-0.9,dir>0?0.9:0,0.02,1.85,-0.015,0.015,M(0x5E4630),g);for(let i=0;i<9;i++){const a=0.02+i*0.1;const x0=dir>0?a:-a-0.06;box(x0,x0+0.06,0.04,1.83,0.015,0.06,wood,g)}return g}
+const lf1=leaf(11.65,1),lf2=leaf(13.45,-1);
+box(-2,27,-0.12,0,-1.5,6.5,M(0xA9B59A));
+box(0,25,0,0.01,0,5,pave);box(5,22,0,0.02,3.5,5,corr);box(22,25,0,0.03,0,5,grass);
+box(0,25,0,2.2,5,5.12,muro);box(0,5,0,2.2,-0.12,0,muro);box(22,25,0,2.2,-0.12,0,muro);box(24.88,25,0,2.2,0,5,muro);
+[[5.2,0],[10.4,1],[15.8,0],[20.9,0]].forEach(c=>box(c[0],c[0]+0.45,0.02,0.07,4.0,4.45,c[1]?M(0x8A6E4E):insp));
+box(13.62,13.7,0.55,0.65,3.5,3.62,metal);box(13.64,13.68,0.48,0.56,3.58,3.62,metal);
+box(5,20,0,2.9,0,3.5,wall,gExt);
+box(4.95,22.05,2.9,3.05,0,3.55,slab,mid);
+box(21.85,22,0,2.9,3.38,3.53,wall);box(21.85,22,0,2.9,0.0,0.15,wall);
+box(20.3,20.95,0,0.9,0.15,0.75,white);box(21.1,21.75,0,0.85,0.15,0.8,white);
+box(20,20.06,0,2.1,1.2,2.1,door,gExt);
+box(6.0,7.0,0,2.15,3.49,3.55,door,gExt);
+[[7.2,8.2,.9,2.3],[8.7,9.8,1.1,2.1],[15.2,16.2,1.6,2.2],[17.8,19.2,.9,2.2]].forEach(w=>box(w[0],w[1],w[2],w[3],3.49,3.54,glass,gExt));
+box(4.95,5.0,0.6,2.3,0.5,3.0,glass,gExt);
+box(0.1,0.25,0,2.6,4.7,4.85,post,gExt);box(0.1,0.25,0,2.6,0.15,0.3,post,gExt);
+box(0,5,2.6,2.66,0,5,cover,gExt);
+const car=new THREE.Group();box(0.9,4.3,0.25,1.0,0.8,2.6,M(0x8C3B3B),car);box(1.8,3.6,1.0,1.45,0.9,2.5,M(0x3E4A55,{roughness:.3}),car);scene.add(car);
+function planterBox(x0,x1){box(x0,x1,2.85,3.05,3.55,4.25,planter,jard);box(x0,x1,3.05,3.5,4.13,4.25,planter,jard);box(x0,x0+0.12,3.05,3.5,3.55,4.25,planter,jard);box(x1-0.12,x1,3.05,3.5,3.55,4.25,planter,jard);
+box(x0+0.12,x1-0.12,3.05,3.35,3.55,4.13,soil,jard);
+const greens=[0x5E9A4A,0x6FAE55,0x4C8A3E,0x7DBE62];
+for(let x=x0+0.4,i=0;x<x1-0.25;x+=0.5,i++){const r=0.2+((i*37)%10)/60;const sp=new THREE.Mesh(new THREE.SphereGeometry(r,12,10),M(greens[i%4]));sp.position.set(x,3.35+r*0.85,3.85+((i%2)?0.08:-0.06));sp.castShadow=true;jard.add(sp)}}
+planterBox(5,8.4);planterBox(16,22);
+box(8.4,16,2.93,3.05,3.55,4.25,slab,jard);box(8.4,16,2.88,2.93,4.17,4.25,slab,jard);
+box(5,22,3.05,5.85,0,3.5,wall,upW);
+[[5.4,8.0,4.0,5.2],[8.9,9.85,4.6,5.2],[12.3,13.7,4.0,5.2],[16.4,18.4,4.0,5.2],[19.5,21.5,4.0,5.2]].forEach(w=>box(w[0],w[1],w[2],w[3],3.49,3.54,glass,upW));
+box(4.95,5,3.6,5.2,0.7,2.8,glass,upW);box(22,22.05,4.0,5.2,0.8,2.6,glass,upW);
+for(let z=0.62;z<2.85;z+=0.15)box(4.72,4.8,3.45,5.4,z,z+0.06,wood,upW);
+box(4.72,4.8,5.4,5.46,0.6,2.9,wood,upW);
+const ang=Math.atan(0.45/3.85),rY=z=>6.9-0.45*z/3.85;
+function rp(x0,x1,z0,z1){const m=box(x0,x1,0,0.12,0,(z1-z0)/Math.cos(ang),roof,roofG);const zc=(z0+z1)/2;m.position.set((x0+x1)/2,rY(zc)+0.06,zc);m.rotation.x=ang;return m}
+rp(4.85,11.6,0,3.9);rp(11.6,22.15,2.9,3.9);rp(11.6,14.4,0,0.9);
+box(4.85,22.15,6.36,6.46,3.82,3.98,post,roofG);
+function panelSlope(x0,x1,z0,z1){const L=(z1-z0)/Math.cos(ang),zc=(z0+z1)/2;
+const f=box(x0,x1,0,0.03,0,L,pvF,roofG);f.position.set((x0+x1)/2,rY(zc)+0.2,zc);f.rotation.x=ang;
+const p=box(x0+0.03,x1-0.03,0,0.02,0,L-0.06,pv,roofG);p.position.set((x0+x1)/2,rY(zc)+0.225,zc);p.rotation.x=ang}
+[[0.25,1.38],[1.43,2.56],[2.61,3.74]].forEach(z=>[[5.2,7.48],[7.55,9.83]].forEach(x=>panelSlope(x[0],x[1],z[0],z[1])));
+const t2=0.12;
+function legs(x0,x1,z0,z1){box(x0+0.2,x0+0.25,8.12,8.4,z0+0.1,z0+0.15,post,roofG);box(x1-0.25,x1-0.2,8.12,8.4,z0+0.1,z0+0.15,post,roofG);box(x0+0.2,x0+0.25,8.12,8.26,z1-0.15,z1-0.1,post,roofG);box(x1-0.25,x1-0.2,8.12,8.26,z1-0.15,z1-0.1,post,roofG)}
+function panelFlat(x0,x1,z0,z1){const zc=(z0+z1)/2,yc=8.32;
+const f=box(x0,x1,0,0.03,0,z1-z0,pvF,roofG);f.position.set((x0+x1)/2,yc,zc);f.rotation.x=t2;
+const p=box(x0+0.03,x1-0.03,0,0.02,0,z1-z0-0.06,pv,roofG);p.position.set((x0+x1)/2,yc+0.025,zc);p.rotation.x=t2;legs(x0,x1,z0,z1)}
+function collector(x0,x1,z0,z1){const zc=(z0+z1)/2,yc=8.32;
+const f=box(x0,x1,0,0.08,0,z1-z0,pvF,roofG);f.position.set((x0+x1)/2,yc,zc);f.rotation.x=t2;
+const a=box(x0+0.05,x1-0.05,0,0.02,0,z1-z0-0.1,abs,roofG);a.position.set((x0+x1)/2,yc+0.05,zc);a.rotation.x=t2;
+for(let x=x0+0.15;x<x1-0.1;x+=0.17){const t=box(x,x+0.025,0,0.015,0,z1-z0-0.14,copper,roofG);t.position.set(x+0.0125,yc+0.065,zc);t.rotation.x=t2}legs(x0,x1,z0,z1)}
+[[14.45,16.73],[16.85,19.13],[19.25,21.53]].forEach(x=>panelFlat(x[0],x[1],0.2,1.33));
+collector(14.45,16.45,1.6,2.65);collector(16.85,18.85,1.6,2.65);panelFlat(19.25,21.53,1.6,2.73);
+box(15.9,15.97,8.12,8.32,2.62,2.69,ins,roofG);box(16.05,16.12,8.12,8.32,2.62,2.69,ins,roofG);
+const s=new THREE.Shape();s.moveTo(0,5.85);s.lineTo(3.5,5.85);s.lineTo(3.5,6.49);s.lineTo(0,6.9);s.lineTo(0,5.85);
+const hp=new THREE.Path();hp.moveTo(0.4,5.95);hp.lineTo(3.2,5.95);hp.lineTo(3.2,6.2);hp.lineTo(0.4,6.2);hp.lineTo(0.4,5.95);s.holes.push(hp);
+const fg=new THREE.Mesh(new THREE.ExtrudeGeometry(s,{depth:0.15,bevelEnabled:false}),wall2);fg.rotation.y=-Math.PI/2;fg.position.x=5.0;fg.castShadow=true;shell.add(fg);
+box(4.86,4.99,6.04,6.09,0.4,3.2,post,shell);box(4.86,4.99,6.12,6.16,0.4,3.2,post,shell);
+box(5,22,5.85,6.95,0,0.15,wall2,shell);
+for(let k=0;k<3;k++)box(5,17.2,5.92+k*0.17,5.98+k*0.17,3.38,3.46,post,shell);
+for(let x=5;x<=17;x+=2.4)box(x,x+0.08,5.85,6.48,3.38,3.46,wall2,shell);
+box(22,22.15,5.85,6.5,2.9,3.5,wall2,shell);
+box(11.6,11.75,5.85,7.0,0.9,2.9,wall2,shell);box(11.6,14.4,5.85,6.95,2.85,3.0,wall2,shell);box(11.6,14.4,5.85,7.0,0.85,1.0,wall2,shell);
+for(let k=0;k<3;k++){const y=7.06+k*0.16;box(11.6,11.72,y,y+0.06,0.9,2.9,post,shell);box(11.6,14.4,y,y+0.06,2.88,2.96,post,shell);box(11.6,14.4,y,y+0.06,0.88,0.96,post,shell)}
+box(11.5,14.45,7.55,7.65,0.8,3.05,roof,roofG);
+box(14.35,14.5,5.85,8.0,0.85,2.9,wall2,shell);box(14.35,14.5,6.6,8.0,0.15,0.85,wall2,shell);
+box(17.15,17.3,5.85,8.0,0.15,1.95,wall2,shell);box(17.15,17.3,5.85,8.0,2.75,2.9,wall2,shell);box(17.15,17.3,7.85,8.0,1.95,2.75,wall2,shell);
+for(let k=0;k<3;k++)box(17.3,17.34,5.98+k*0.11,6.03+k*0.11,0.35,1.25,post,shell);
+box(14.4,17.2,5.85,8.0,2.85,3.0,wall2,shell);box(14.4,17.2,6.95,8.0,0,0.15,insul,shell);
+for(let k=0;k<3;k++)box(15.0,16.6,7.3+k*0.14,7.36+k*0.14,2.99,3.04,post,shell);
+box(17.3,22,5.85,5.9,0.15,2.85,tile,shell);
+box(17.3,22,5.85,6.6,2.85,3.0,wall2,shell);box(17.3,22,6.6,6.95,2.88,2.94,rail,shell);
+for(let z=0.2;z<2.82;z+=0.12)box(21.96,22.02,5.9,6.95,z,z+0.03,post,shell);
+box(21.94,22.04,6.95,7.0,0.15,2.85,post,shell);box(21.94,22.04,5.85,5.92,0.15,2.85,post,shell);
+box(14.25,22.2,8.0,8.12,0,3.05,roof,roofG);
+[[19.0,0.15],[19.0,2.75],[21.95,0.15],[21.95,2.75]].forEach(p=>box(p[0],p[0]+0.15,7.0,8.0,p[1],p[1]+0.15,post,roofG));
+const eo=new THREE.Mesh(new THREE.CylinderGeometry(.2,.2,.35,14),metal);eo.position.set(10.7,7.0,0.5);roofG.add(eo);
+const eo2=new THREE.Mesh(new THREE.SphereGeometry(.25,14,10),metal);eo2.position.set(10.7,7.25,0.5);roofG.add(eo2);
+box(5.3,11.5,5.85,5.9,0.2,0.85,wood,attic);box(11.75,14.35,5.85,5.9,0.18,0.85,wood,attic);
+box(14.65,16.25,5.85,6.25,0.75,2.25,slab,attic);
+const tk=new THREE.Mesh(new THREE.CylinderGeometry(.72,.62,.95,24),tank);tk.position.set(15.45,6.73,1.5);tk.castShadow=true;attic.add(tk);
+const ld=new THREE.Mesh(new THREE.CylinderGeometry(.5,.5,.06,20),tank);ld.position.set(15.45,7.23,1.5);attic.add(ld);
+const bo=new THREE.Mesh(new THREE.CylinderGeometry(.3,.3,1.6,22),steel);bo.rotation.z=Math.PI/2;bo.position.set(15.42,6.27,2.55);bo.castShadow=true;attic.add(bo);
+box(14.85,14.95,5.85,6.0,2.35,2.75,post,attic);box(15.9,16.0,5.85,6.0,2.35,2.75,post,attic);
+box(16.1,17.1,5.86,5.89,0.15,0.75,M(0x444441),attic);box(16.15,17.05,5.89,5.9,0.2,0.7,wood,attic);
+box(16.4,17,5.85,6.05,1.0,1.5,shaftM,attic);box(9.96,10.5,5.85,6.05,2.9,3.44,shaftH,attic);box(13.0,13.6,5.85,5.92,0.15,0.45,shaftM,attic);
+box(16.45,16.8,5.85,6.15,1.55,1.85,M(0x378ADD),attic);
+box(16.15,16.45,5.95,6.02,1.22,1.29,pipe,attic);box(16.2,16.3,5.92,6.06,1.19,1.32,reg,attic);
+box(14.75,14.82,5.95,6.02,0.34,0.85,pipe,attic);box(10.2,14.82,5.95,6.02,0.3,0.37,pipe,attic);box(10.2,10.27,5.95,6.02,0.3,2.95,pipe,attic);
+box(14.72,14.85,5.92,6.06,0.5,0.6,reg,attic);
+box(14.9,14.97,5.95,6.02,2.2,2.3,pipe,attic);
+box(16.22,16.47,6.08,6.14,2.45,2.52,hot,attic);box(16.4,16.47,6.05,6.14,1.4,2.52,hot,attic);
+box(14.52,14.62,6.08,6.14,2.45,2.52,hot,attic);box(14.52,14.58,6.08,6.14,0.45,2.52,hot,attic);
+box(10.05,14.58,6.08,6.14,0.45,0.52,hot,attic);box(10.05,10.12,6.08,6.14,0.45,2.95,hot,attic);
+box(15.9,15.97,6.55,8.0,2.62,2.69,ins,attic);box(16.05,16.12,6.55,8.0,2.62,2.69,ins,attic);
+box(16.15,16.35,6.6,6.9,2.7,2.84,M(0x444441),attic);
+box(5.3,17.1,6.35,6.4,0.15,0.4,elec,attic);box(5.3,17.1,6.6,6.65,0.15,0.4,data,attic);
+box(13.25,13.4,5.92,6.65,0.18,0.28,shaftM,attic);
+box(6.4,6.48,5.85,6.35,0.2,0.3,elec,attic);box(6.6,6.68,5.85,6.6,0.2,0.3,data,attic);
+box(6.3,17.2,5.95,5.99,0.78,0.82,copper,attic);box(6.3,6.34,5.85,5.99,0.78,0.82,copper,attic);box(17.2,20.9,5.95,5.99,1.95,1.99,copper,attic);
+box(20.85,21.3,5.9,5.95,0.2,1.85,post,attic);box(20.85,21.3,6.52,6.57,0.2,1.85,post,attic);
+box(20.85,20.9,5.9,7.15,0.2,0.25,post,attic);box(20.85,20.9,5.9,7.15,0.95,1.0,post,attic);box(20.85,20.9,5.9,7.15,1.8,1.85,post,attic);
+[[0.6,5.95],[1.45,5.95],[0.6,6.58],[1.45,6.58]].forEach(u=>{box(20.9,21.25,u[1],u[1]+0.55,u[0]-0.38,u[0]+0.38,white,attic);
+const f=new THREE.Mesh(new THREE.CylinderGeometry(.19,.19,.03,18),M(0x44474A));f.rotation.z=Math.PI/2;f.position.set(21.265,u[1]+0.275,u[0]+0.08);attic.add(f)});
+box(21.5,21.65,5.88,5.92,2.5,2.65,dark,attic);
+box(15.2,15.7,6.95,7.55,2.68,2.84,white,attic);box(15.35,15.55,7.3,7.4,2.66,2.68,M(0x1D9E75),attic);
+box(15.42,15.48,7.55,7.98,2.75,2.8,dark,attic);
+const labels=[];const L=(m,t,x,y,z)=>labels.push({m,t,p:new THREE.Vector3(x,y,z)});
+L('full','Placas solares (6)',7.5,7.55,1.9);L('full','Placas (4) + coletores (2)',18.2,8.95,1.45);L('full','Jardineira da suíte',6.7,4.3,4.4);L('full','Beiral simples',12.2,2.6,4.4);L('full','Jardineira dos quartos',19,4.3,4.4);
+const rooms=[['Suíte',5,8.4,0,3.5,0x9FD8C4],['Closet',8.4,10.5,0,1.5,0xE3D9C6],['Banho suíte',8.4,10.5,1.5,3.5,0xB5D4F4],['Patamar 1,0 m',10.5,11.5,0,3.5,0xFAC775],['Circulação',11.5,14.5,0,1.5,0xE8E6E0],['Escada',11.5,14.5,1.5,3.5,0x7E7B74],['Corredor',14.5,18.9,0,1.0,0xE8E6E0],['Quarto criança 1',14.5,18.9,1.0,3.5,0xF4C0D1],['Quarto criança 2',18.9,22,0,3.5,0xC0DD97]];
+rooms.forEach(r=>{box(r[1],r[2],3.05,3.1,r[3],r[4],M(r[5]),cut);L('upper',r[0],(r[1]+r[2])/2-(r[0]==='Banho suíte'?0.3:0),3.3,(r[3]+r[4])/2+(r[0]==='Patamar 1,0 m'?0.6:0))});
+L('upper','Jardineira',6.7,3.9,4.5);L('upper','Jardineira',19,3.9,4.5);L('upper','Beiral simples',12.2,3.4,4.5);
+box(16.4,17,3.05,4.6,1.0,1.5,shaftM,cut);box(9.96,10.5,3.05,4.6,2.9,3.44,shaftH,cut);box(13.0,13.6,3.05,4.6,0.15,0.45,shaftM,cut);
+box(16.1,17.1,3.1,3.13,0.15,0.75,M(0x444441),cut);
+L('upper','Shaft 1',16.7,4.8,1.25);L('upper','Shaft 2',10.23,4.8,3.17);L('upper','Shaft 3',13.3,4.8,0.3);L('upper','Alçapão p/ casinha',16.6,3.6,0.1);
+function walls(grp,y0,H,list){const T=0.12;list.forEach(w=>{if(w[0]==='z')box(w[1],w[2],y0,y0+H,w[3]-T/2,w[3]+T/2,wall,grp);else box(w[3]-T/2,w[3]+T/2,y0,y0+H,w[1],w[2],wall,grp)})}
+walls(cut,3.05,1.3,[['z',5,22,0.06],['z',5,22,3.44],['x',0,3.5,5.06],['x',0,3.5,21.94],['x',0,0.3,8.4],['x',1.2,3.5,8.4],['z',8.4,9.0,1.5],['z',9.8,10.5,1.5],['x',0,0.3,10.5],['x',1.2,3.5,10.5],['x',1.0,3.5,14.5],['z',15.4,16.4,1.0],['z',17.0,18.9,1.0],['x',0.9,3.5,18.9]]);
+box(11.5,14.5,3.05,4.15,1.47,1.53,rail,cut);box(11.47,11.53,3.05,4.15,1.5,2.5,rail,cut);
+for(let j=0;j<8;j++){const h=1.4+0.175*(j+1);box(13.6-0.26*(j+1),13.6-0.26*j,h-0.2,h,2.56,3.5,slab,cut)}
+box(13.6,14.44,1.25,1.4,1.5,3.5,slab,cut);
+const gro=[['Sala',5,8.4,0,3.5,0xE9DCC6],['Cozinha',8.4,11.5,0,3.5,0xF1E6D2],['Circulação',11.5,17,0,1.5,0xE8E6E0],['Banho',14.5,17,1.5,3.5,0xB5D4F4],['Escritório',17,20,0,3.5,0x9FD8C4],['',11.56,14.44,2.56,3.44,0xE3D9C6]];
+gro.forEach(r=>{box(r[1],r[2],0.01,0.05,r[3],r[4],M(r[5]),gcut);if(r[0])L('ground',r[0],(r[1]+r[2])/2,0.4,(r[3]+r[4])/2+(r[0]==='Circulação'?-0.2:0)-(r[0]==='Cozinha'?0.9:0))});
+walls(gcut,0,1.3,[['z',5,20,0.06],['z',5,6.0,3.44],['z',7.0,11.65,3.44],['z',13.45,20,3.44],['x',0,0.5,5.06],['x',3.0,3.5,5.06],['x',0,1.2,19.94],['x',2.1,3.5,19.94],['x',2.5,3.5,11.5],['z',11.5,14.5,2.5],['z',13.6,14.5,1.5],['z',14.5,15.3,1.5],['z',16.1,17,1.5],['x',1.5,3.5,14.5],['x',0,0.3,17],['x',1.2,3.5,17]]);
+box(5.06,5.1,0.6,1.3,0.5,3.0,glass,gcut);box(8.7,9.8,1.1,1.3,3.42,3.46,glass,gcut);
+for(let k=0;k<7;k++)box(11.78+0.26*k,11.78+0.26*(k+1),0,0.175*(k+1),1.5,2.44,slab,gcut);
+box(13.6,14.44,1.25,1.4,1.5,3.5,slab,gcut);
+for(let j=0;j<8;j++){const h=1.4+0.175*(j+1);box(13.6-0.26*(j+1),13.6-0.26*j,h-0.2,h,2.56,3.5,slab,gcut)}
+box(11.56,11.6,0.8,2.0,2.6,3.4,M(0xC8B58F),gcut);
+[0.35,0.85,1.35,1.85].forEach(y=>box(11.62,12.1,y,y+0.03,2.58,2.95,wood,gcut));
+const bike=new THREE.Group();gcut.add(bike);
+[12.45,13.5].forEach(x=>{const w=new THREE.Mesh(new THREE.TorusGeometry(0.33,0.03,8,28),dark);w.position.set(x,0.37,2.95);bike.add(w)});
+box(12.45,13.5,0.6,0.64,2.93,2.97,M(0x1D9E75),bike);
+box(13.75,14.15,0.0,0.45,2.95,3.35,M(0x8A6E4E),gcut);
+box(13.75,14.35,0,0.8,1.6,2.1,dark,gcut);
+box(14.6,15.2,1.2,1.9,0.06,0.16,M(0xBFC3C7),gcut);
+box(16.4,17,0,1.6,1.0,1.5,shaftM,gcut);box(9.96,10.5,0,1.6,2.9,3.44,shaftH,gcut);box(13.0,13.6,0,1.6,0.15,0.45,shaftM,gcut);
+box(10.6,11.4,0,1.8,2.7,3.38,steel,gcut);
+box(9.4,11.4,0,0.9,0.1,0.7,white,gcut);box(8.6,9.9,0,0.9,2.85,3.38,white,gcut);
+box(5.6,7.6,0,0.75,0.2,1.0,M(0x8C8577),gcut);
+L('ground','Geladeira (nicho 1,0 m)',11.0,2.05,3.05);L('ground','Despensa',13.1,0.75,3.05);L('ground','Rack',14.05,1.0,1.85);L('ground','Quadro de luz',14.9,2.1,0.3);L('ground','Shaft 1',16.7,1.8,1.25);L('ground','Shaft 2',10.23,1.9,3.17);L('ground','Shaft 3',13.3,1.8,0.3);
+L('ground','Porta da sala',6.5,2.4,3.9);L('ground','Lavanderia',21,1.3,2.2);L('ground','Escada',12.8,2.3,2.0);L('ground','Garagem',2.5,1.6,1.5);
+L('attic','Caixa d’água',15.45,7.5,1.2);L('attic','Boiler 300 L',15.0,6.7,2.95);L('attic','Alçapão',16.6,6.15,0.2);L('attic','Inversor',15.45,7.75,2.75);
+L('attic','Veneziana alta',15.8,7.9,3.25);L('attic','Grelha baixa',17.45,6.45,0.8);L('attic','Parede da divisa isolada',15.8,8.25,-0.2);
+L('attic','Área técnica até os fundos',19.2,6.15,2.3);L('attic','4 condensadoras sopram para fora',21.1,7.45,1.0);L('attic','Guarda-corpo vazado',22.2,6.6,2.4);
+L('attic','Chaminé da escada',13,7.95,1.9);L('attic','Vão baixo do telhado',7,6.35,1.6);
+const lbEls=labels.map(l=>{const d=document.createElement('div');d.className='lbl';d.textContent=l.t;d.style.display='none';document.body.appendChild(d);return d});
+const tr=new THREE.Mesh(new THREE.CylinderGeometry(.12,.16,1.8,8),M(0x6B4F36));tr.position.set(23.6,0.9,2.2);tr.castShadow=true;scene.add(tr);
+const cr=new THREE.Mesh(new THREE.SphereGeometry(1.1,16,12),M(0x4C8A3E));cr.position.set(23.6,2.5,2.2);cr.castShadow=true;scene.add(cr);
+const PI=Math.PI;
+const DEF={full:[0.58*PI,0.72,30,12.5,3.2,2.5],ground:[0.6*PI,0.75,22,12.5,1.0,2.5],upper:[0.55*PI,0.6,19,13.5,3.2,2.5],attic:[0.22*PI,0.75,19,17,6.3,1.6]};
+let mode='attic';
+let th,ph,rad,tth,tph,trad,ttx,tty,ttz;const tgt=new THREE.Vector3();
+function center(){const d=DEF[mode];tth=d[0];tph=d[1];trad=d[2];ttx=d[3];tty=d[4];ttz=d[5]}
+center();th=tth;ph=tph;rad=trad;tgt.set(ttx,tty,ttz);
+function zoom(f){trad=Math.min(80,Math.max(3,trad*f))}
+document.querySelectorAll('[data-v]').forEach(b=>b.onclick=()=>{const v=b.dataset.v.split(',').map(Number);tth=v[0]*PI;tph=v[1]});
+let panMode=false;
+const tRot=document.getElementById('tRot'),tPan=document.getElementById('tPan');
+function setPan(on){panMode=on;tPan.classList.toggle('on',on);tRot.classList.toggle('on',!on);wrap.style.cursor=on?'move':'grab'}
+tRot.onclick=()=>setPan(false);tPan.onclick=()=>setPan(true);
+document.getElementById('tCen').onclick=center;
+document.getElementById('tZi').onclick=()=>zoom(0.82);document.getElementById('tZo').onclick=()=>zoom(1.2);
+const tBars=document.getElementById('tBars');
+tBars.onclick=()=>{const h=document.body.classList.toggle('hidden');tBars.classList.toggle('on',h)};
+const vR=new THREE.Vector3(),vU=new THREE.Vector3();
+function pan(dx,dy){const k=rad*0.0012;vR.setFromMatrixColumn(cam.matrix,0);vU.setFromMatrixColumn(cam.matrix,1);
+const mx=(-vR.x*dx+vU.x*dy)*k,my=(-vR.y*dx+vU.y*dy)*k,mz=(-vR.z*dx+vU.z*dy)*k;ttx+=mx;tty+=my;ttz+=mz;tgt.x+=mx;tgt.y+=my;tgt.z+=mz}
+function rotate(dx,dy){tth+=dx*0.008;tph=Math.min(1.5,Math.max(0.1,tph-dy*0.006))}
+const pts=new Map();let pinch=null;
+wrap.addEventListener('contextmenu',e=>e.preventDefault());
+wrap.addEventListener('pointerdown',e=>{pts.set(e.pointerId,{x:e.clientX,y:e.clientY,b:e.button});wrap.setPointerCapture(e.pointerId);
+if(pts.size===2){const a=[...pts.values()];pinch={d:Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y),mx:(a[0].x+a[1].x)/2,my:(a[0].y+a[1].y)/2}}});
+wrap.addEventListener('pointermove',e=>{const p=pts.get(e.pointerId);if(!p)return;const dx=e.clientX-p.x,dy=e.clientY-p.y;p.x=e.clientX;p.y=e.clientY;
+if(pts.size===1){if(panMode||p.b===2||p.b===1||e.shiftKey)pan(dx,dy);else rotate(dx,dy)}
+else if(pts.size===2&&pinch){const a=[...pts.values()];const d=Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y),mx=(a[0].x+a[1].x)/2,my=(a[0].y+a[1].y)/2;
+if(d>0){zoom(pinch.d/d)}pan(mx-pinch.mx,my-pinch.my);pinch={d,mx,my}}});
+const up=e=>{pts.delete(e.pointerId);if(pts.size<2)pinch=null};wrap.addEventListener('pointerup',up);wrap.addEventListener('pointercancel',up);
+wrap.addEventListener('wheel',e=>{e.preventDefault();zoom(1+e.deltaY*0.001)},{passive:false});
+const VIS={full:[gExt,mid,jard,upW,shell,roofG,attic],attic:[gExt,mid,jard,upW,shell,attic],upper:[gExt,mid,jard,cut],ground:[gcut]};
+const ALL=[gExt,mid,jard,upW,shell,roofG,attic,cut,gcut];
+function setMode(m,init){mode=m;ALL.forEach(g=>g.visible=VIS[m].includes(g));
+const open=m==='ground';lf1.rotation.y=open?-1.25:0;lf2.rotation.y=open?1.25:0;
+labels.forEach((l,i)=>lbEls[i].style.display=(l.m===m)?'block':'none');
+document.querySelectorAll('.md').forEach(b=>b.classList.toggle('on',b.dataset.m===m));
+if(!init)center()}
+document.querySelectorAll('.md').forEach(b=>b.onclick=()=>setMode(b.dataset.m));
+setMode('attic',true);
+function size(){const w=innerWidth,h=innerHeight;ren.setSize(w,h);cam.aspect=w/h;cam.updateProjectionMatrix()}
+addEventListener('resize',size);size();
+const v=new THREE.Vector3();
+(function loop(){const sm=0.14;th+=(tth-th)*sm;ph+=(tph-ph)*sm;rad+=(trad-rad)*sm;tgt.x+=(ttx-tgt.x)*sm;tgt.y+=(tty-tgt.y)*sm;tgt.z+=(ttz-tgt.z)*sm;
+cam.position.set(tgt.x+rad*Math.sin(ph)*Math.cos(th),tgt.y+rad*Math.cos(ph),tgt.z+rad*Math.sin(ph)*Math.sin(th));cam.lookAt(tgt);cam.updateMatrixWorld();
+ren.render(scene,cam);
+const w=innerWidth,h=innerHeight;labels.forEach((l,i)=>{if(l.m!==mode)return;v.copy(l.p).project(cam);lbEls[i].style.display=(v.z<1&&Math.abs(v.x)<1.1&&Math.abs(v.y)<1.1)?'block':'none';lbEls[i].style.left=((v.x+1)/2*w)+'px';lbEls[i].style.top=((1-v.y)/2*h)+'px'});
+requestAnimationFrame(loop)})();
+}
+</script>
+</body>
+</html>
