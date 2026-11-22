@@ -38,10 +38,10 @@ html,body{margin:0;height:100%;overflow:hidden;background:#DCE8F0;font:14px/1.4 
 <div id="wrap"></div>
 <div class="bar top" id="barTop">
 <span class="t">Sobrado 5×25</span>
-<button class="bt md" data-m="full">Fachada</button>
+<button class="bt md on" data-m="full">Fachada</button>
 <button class="bt md" data-m="ground">Térreo</button>
 <button class="bt md" data-m="upper">Andar de cima</button>
-<button class="bt md on" data-m="attic">Parte técnica</button>
+<button class="bt md" data-m="attic">Parte técnica</button>
 </div>
 <div class="bar bottom" id="barBot">
 <span class="k">Sol</span>
@@ -57,6 +57,7 @@ html,body{margin:0;height:100%;overflow:hidden;background:#DCE8F0;font:14px/1.4 
 </div>
 <div class="tools">
 <button class="tb" id="tBars" title="Mostrar ou esconder controles" aria-label="Mostrar ou esconder controles"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
+<button class="tb on" id="tLbl" title="Mostrar ou esconder legendas" aria-label="Mostrar ou esconder legendas"><svg viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h9l7 7-7 7H5a2 2 0 0 1-2-2z"/><circle cx="8" cy="10" r="1.5"/></svg></button>
 <button class="tb on" id="tRot" title="Girar" aria-label="Girar"><svg viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg></button>
 <button class="tb" id="tPan" title="Arrastar" aria-label="Arrastar"><svg viewBox="0 0 24 24"><path d="M12 3v18M3 12h18M9 6l3-3 3 3M9 18l3 3 3-3M6 9l-3 3 3 3M18 9l3 3-3 3"/></svg></button>
 <button class="tb" id="tCen" title="Centralizar" aria-label="Centralizar"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M4 8V4h4M20 8V4h-4M4 16v4h4M20 16v4h-4"/></svg></button>
@@ -239,7 +240,7 @@ const tr=new THREE.Mesh(new THREE.CylinderGeometry(.12,.16,1.8,8),M(0x6B4F36));t
 const cr=new THREE.Mesh(new THREE.SphereGeometry(1.1,16,12),M(0x4C8A3E));cr.position.set(23.6,2.5,2.2);cr.castShadow=true;scene.add(cr);
 const PI=Math.PI;
 const DEF={full:[0.58*PI,0.72,30,12.5,3.2,2.5],ground:[0.6*PI,0.75,22,12.5,1.0,2.5],upper:[0.55*PI,0.6,19,13.5,3.2,2.5],attic:[0.22*PI,0.75,19,17,6.3,1.6]};
-let mode='attic';
+let mode='full';let showLabels=true;
 let th,ph,rad,tth,tph,trad,ttx,tty,ttz;const tgt=new THREE.Vector3();
 function center(){const d=DEF[mode];tth=d[0];tph=d[1];trad=d[2];ttx=d[3];tty=d[4];ttz=d[5]}
 center();th=tth;ph=tph;rad=trad;tgt.set(ttx,tty,ttz);
@@ -271,18 +272,20 @@ const VIS={full:[gExt,mid,jard,upW,shell,roofG,attic],attic:[gExt,mid,jard,upW,s
 const ALL=[gExt,mid,jard,upW,shell,roofG,attic,cut,gcut];
 function setMode(m,init){mode=m;ALL.forEach(g=>g.visible=VIS[m].includes(g));
 const open=m==='ground';lf1.rotation.y=open?-1.25:0;lf2.rotation.y=open?1.25:0;
-labels.forEach((l,i)=>lbEls[i].style.display=(l.m===m)?'block':'none');
+labels.forEach((l,i)=>lbEls[i].style.display=(showLabels&&l.m===m)?'block':'none');
 document.querySelectorAll('.md').forEach(b=>b.classList.toggle('on',b.dataset.m===m));
 if(!init)center()}
 document.querySelectorAll('.md').forEach(b=>b.onclick=()=>setMode(b.dataset.m));
-setMode('attic',true);
+setMode('full',true);
+const tLbl=document.getElementById('tLbl');
+tLbl.onclick=()=>{showLabels=!showLabels;tLbl.classList.toggle('on',showLabels);labels.forEach((l,i)=>lbEls[i].style.display=(showLabels&&l.m===mode)?'block':'none')};
 function size(){const w=innerWidth,h=innerHeight;ren.setSize(w,h);cam.aspect=w/h;cam.updateProjectionMatrix()}
 addEventListener('resize',size);size();
 const v=new THREE.Vector3();
 (function loop(){const sm=0.14;th+=(tth-th)*sm;ph+=(tph-ph)*sm;rad+=(trad-rad)*sm;tgt.x+=(ttx-tgt.x)*sm;tgt.y+=(tty-tgt.y)*sm;tgt.z+=(ttz-tgt.z)*sm;
 cam.position.set(tgt.x+rad*Math.sin(ph)*Math.cos(th),tgt.y+rad*Math.cos(ph),tgt.z+rad*Math.sin(ph)*Math.sin(th));cam.lookAt(tgt);cam.updateMatrixWorld();
 ren.render(scene,cam);
-const w=innerWidth,h=innerHeight;labels.forEach((l,i)=>{if(l.m!==mode)return;v.copy(l.p).project(cam);lbEls[i].style.display=(v.z<1&&Math.abs(v.x)<1.1&&Math.abs(v.y)<1.1)?'block':'none';lbEls[i].style.left=((v.x+1)/2*w)+'px';lbEls[i].style.top=((1-v.y)/2*h)+'px'});
+const w=innerWidth,h=innerHeight;labels.forEach((l,i)=>{if(!showLabels||l.m!==mode)return;v.copy(l.p).project(cam);lbEls[i].style.display=(v.z<1&&Math.abs(v.x)<1.1&&Math.abs(v.y)<1.1)?'block':'none';lbEls[i].style.left=((v.x+1)/2*w)+'px';lbEls[i].style.top=((1-v.y)/2*h)+'px'});
 requestAnimationFrame(loop)})();
 }
 </script>
